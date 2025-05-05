@@ -1,203 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>ETHIO GAMER TOP-UP</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 50px;
-        }
-        h1 {
-            color: #0077cc;
-        }
-        select, input {
-            padding: 10px;
-            font-size: 16px;
-            margin: 10px;
-            width: 300px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            border-radius: 5px;
-            background-color: #0077cc;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin: 5px;
-        }
-        iframe {
-            margin-top: 30px;
-            width: 80%;
-            height: 600px;
-            border: 1px solid #ccc;
-        }
-        #history {
-            margin-top: 30px;
-            text-align: left;
-            width: 80%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        #history h2 {
-            color: #444;
-        }
-        #history ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        #history li {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Admin Panel - ETHIO GAMER TOP-UP</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+    }
+    th {
+      background-color: #0077cc;
+      color: white;
+    }
+    input[type="email"], input[type="password"] {
+      padding: 10px;
+      margin: 5px;
+      width: 250px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+    #adminPanel {
+      display: none;
+    }
+  </style>
 </head>
 <body>
 
-    <h1>Multi-Bank Receipt Checker</h1>
+  <h1>ETHIO GAMER ADMIN PANEL</h1>
 
-    <select id="bankSelector">
-        <option value="telebirr">Telebirr</option>
-        <option value="cbe">Commercial Bank of Ethiopia (CBE)</option>
-        <option value="abyssinia">Abyssinia Bank</option>
-        <option value="ebirr-kaffi">E-BIRR KAFFI</option>
-        <option value="ebirr-coopay">E-BIRR COOpay</option>
-    </select>
+  <!-- Login Section -->
+  <div id="loginSection">
+    <h3>Login as Admin</h3>
+    <input type="email" id="email" placeholder="Email"><br>
+    <input type="password" id="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
+  </div>
 
-    <br>
-    <input type="text" id="txnInput" placeholder="Enter Transaction Number">
-    <button onclick="loadReceipt()">Check Receipt</button>
+  <!-- Admin Panel -->
+  <div id="adminPanel">
+    <button onclick="logout()">Logout</button>
+    <h2>Transaction Management</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Bank</th>
+          <th>Transaction</th>
+          <th>Date</th>
+          <th>Order Done ✅</th>
+          <th>Receipt Verified 🧾</th>
+        </tr>
+      </thead>
+      <tbody id="transactionList"></tbody>
+    </table>
+    <button onclick="saveUpdates()">✅ Save All Changes</button>
+  </div>
 
-    <iframe id="receiptFrame"></iframe>
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
-    <div id="history">
-        <h2>Checked Transactions</h2>
-        <ul id="historyList"></ul>
-    </div>
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBamCALWsdrWviiEkA26cP6dCJZqZ5NScY",
+      authDomain: "ethio-a1e95.firebaseapp.com",
+      databaseURL: "https://ethio-a1e95-default-rtdb.firebaseio.com",
+      projectId: "ethio-a1e95",
+      storageBucket: "ethio-a1e95.appspot.com",
+      messagingSenderId: "697514706181",
+      appId: "1:697514706181:web:03147af1833cc25719636c",
+      measurementId: "G-FDTWBNFP7F"
+    };
 
-    <button onclick="downloadHistory()">Download Transaction History</button>
-    <button onclick="clearHistory()">Clear Transaction History</button>
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
 
-    <script>
-        // Retrieve the transaction history from localStorage (if it exists)
-        let transactionHistory = JSON.parse(localStorage.getItem("transactionHistory")) || [];
+    // Login Function
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => alert("✅ Logged in successfully!"))
+        .catch(err => alert("❌ " + err.message));
+    }
 
-        // Load saved transaction history on page load
-        window.onload = function() {
-            const historyList = document.getElementById("historyList");
-            transactionHistory.forEach(item => {
-                const listItem = document.createElement("li");
-                listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
-                historyList.prepend(listItem);
-            });
-        };
+    // Logout Function
+    function logout() {
+      auth.signOut().then(() => {
+        alert("🚪 Logged out.");
+        document.getElementById("adminPanel").style.display = "none";
+        document.getElementById("loginSection").style.display = "block";
+      });
+    }
 
-        function loadReceipt() {
-            const bank = document.getElementById("bankSelector").value;
-            const txn = document.getElementById("txnInput").value.trim();
-            const currentTime = new Date().toLocaleString(); // Get the current time and date
+    // Auth State Check
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("adminPanel").style.display = "block";
+        loadTransactions();
+      } else {
+        document.getElementById("loginSection").style.display = "block";
+        document.getElementById("adminPanel").style.display = "none";
+      }
+    });
 
-            if (txn === "") {
-                alert("Please enter a transaction number.");
-                return;
-            }
+    // Load Transactions from Firebase
+    function loadTransactions() {
+      const list = document.getElementById("transactionList");
+      list.innerHTML = "";
 
-            let url = "";
-            switch (bank) {
-                case "telebirr":
-                    url = "https://transactioninfo.ethiotelecom.et/receipt/" + txn;
-                    break;
-                case "cbe":
-                    url = "https://apps.cbe.com.et:100/?id=" + txn + "46776488";
-                    break;
-                case "abyssinia":
-                    url = "https://cs.bankofabyssinia.com/slip/?trx=" + txn;
-                    break;
-                case "ebirr-kaffi":
-                    url = "https://transactioninfo.ebirr.com/kaafimf-Ebirr/receipt/" + txn;
-                    break;
-                case "ebirr-coopay":
-                    url = "https://transactioninfo.ebirr.com/coopay-Ebirr/receipt/" + txn;
-                    break;
-                default:
-                    alert("Invalid bank selection.");
-                    return;
-            }
+      db.ref("transactions").once("value", snapshot => {
+        snapshot.forEach(child => {
+          const data = child.val();
+          const row = document.createElement("tr");
 
-            // Check for duplicate transaction
-            const historyList = document.getElementById("historyList");
-            const existingItems = historyList.querySelectorAll("li");
-            let duplicate = false;
-
-            existingItems.forEach(item => {
-                if (item.textContent.includes(`Transaction: ${txn}`)) {
-                    duplicate = true;
-                }
-            });
-
-            if (duplicate) {
-                alert("⚠️ This transaction has already been checked!");
-            } else {
-                const listItem = document.createElement("li");
-                const bankName = document.getElementById("bankSelector").options[document.getElementById("bankSelector").selectedIndex].text;
-                listItem.textContent = `Bank: ${bankName}, Transaction: ${txn}, Date: ${currentTime}`;
-                historyList.prepend(listItem);
-
-                // Add to transaction history array
-                transactionHistory.push({ bank: bankName, txn: txn, date: currentTime });
-
-                // Save to localStorage
-                localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
-            }
-
-            if (bank === "cbe") {
-                window.open(url, "_blank");
-            } else {
-                document.getElementById("receiptFrame").src = url;
-            }
-        }
-
-        // Trigger on Enter key
-        document.getElementById("txnInput").addEventListener("keypress", function (e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
-                loadReceipt();
-            }
+          row.innerHTML = `
+            <td>${data.bank}</td>
+            <td>${data.txn}</td>
+            <td>${data.date}</td>
+            <td><input type="checkbox" ${data.orderDone ? "checked" : ""} data-key="${child.key}" data-field="orderDone"></td>
+            <td><input type="checkbox" ${data.receiptVerified ? "checked" : ""} data-key="${child.key}" data-field="receiptVerified"></td>
+          `;
+          list.appendChild(row);
         });
+      });
+    }
 
-        // Download transaction history as CSV
-        function downloadHistory() {
-            if (transactionHistory.length === 0) {
-                alert("No transactions to download.");
-                return;
-            }
-
-            const csvContent = "Bank,Transaction Number,Date\n" +
-                transactionHistory.map(item => `${item.bank},${item.txn},${item.date}`).join("\n");
-
-            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "transaction_history.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // Clear transaction history
-        function clearHistory() {
-            if (confirm("Are you sure you want to clear all transaction history?")) {
-                transactionHistory = [];
-                localStorage.removeItem("transactionHistory");
-                document.getElementById("historyList").innerHTML = "";
-                alert("Transaction history cleared.");
-            }
-        }
-    </script>
+    // Save Checkbox Status Updates
+    function saveUpdates() {
+      const checkboxes = document.querySelectorAll("input[type='checkbox']");
+      checkboxes.forEach(cb => {
+        const key = cb.getAttribute("data-key");
+        const field = cb.getAttribute("data-field");
+        const value = cb.checked;
+        db.ref("transactions/" + key + "/" + field).set(value);
+      });
+      alert("✅ All updates saved!");
+    }
+  </script>
 
 </body>
 </html>
