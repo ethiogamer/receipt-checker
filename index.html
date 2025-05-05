@@ -82,48 +82,24 @@
     <button onclick="downloadHistory()">Download Transaction History</button>
     <button onclick="clearHistory()">Clear Transaction History</button>
 
-    <!-- Add Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    
     <script>
-        // Firebase configuration
-        const firebaseConfig = {
-  apiKey: "AIzaSyBamCALWsdrWviiEkA26cP6dCJZqZ5NScY",
-  authDomain: "ethio-a1e95.firebaseapp.com",
-  projectId: "ethio-a1e95",
-  storageBucket: "ethio-a1e95.firebasestorage.app",
-  messagingSenderId: "697514706181",
-  appId: "1:697514706181:web:03147af1833cc25719636c",
-  measurementId: "G-FDTWBNFP7F"
-};
+        // Retrieve the transaction history from localStorage (if it exists)
+        let transactionHistory = JSON.parse(localStorage.getItem("transactionHistory")) || [];
 
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // Retrieve transaction history from Firebase
-        let transactionHistory = [];
-
+        // Load saved transaction history on page load
         window.onload = function() {
             const historyList = document.getElementById("historyList");
-
-            // Fetch history from Firebase
-            firebase.database().ref('transactions').on('value', (snapshot) => {
-                historyList.innerHTML = '';
-                snapshot.forEach((childSnapshot) => {
-                    const item = childSnapshot.val();
-                    const listItem = document.createElement("li");
-                    listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
-                    historyList.prepend(listItem);
-                });
+            transactionHistory.forEach(item => {
+                const listItem = document.createElement("li");
+                listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
+                historyList.prepend(listItem);
             });
         };
 
         function loadReceipt() {
             const bank = document.getElementById("bankSelector").value;
             const txn = document.getElementById("txnInput").value.trim();
-            const currentTime = new Date().toLocaleString();
+            const currentTime = new Date().toLocaleString(); // Get the current time and date
 
             if (txn === "") {
                 alert("Please enter a transaction number.");
@@ -152,20 +128,49 @@
                     return;
             }
 
+            // Check for duplicate transaction
             const historyList = document.getElementById("historyList");
-            const bankName = document.getElementById("bankSelector").options[document.getElementById("bankSelector").selectedIndex].text;
+            const existingItems = historyList.querySelectorAll("li");
+            let duplicate = false;
 
-            // Push to Firebase
-            const transactionRef = firebase.database().ref('transactions');
-            transactionRef.push({
-                bank: bankName,
-                txn: txn,
-                date: currentTime
+            existingItems.forEach(item => {
+                if (item.textContent.includes(`Transaction: ${txn}`)) {
+                    duplicate = true;
+                }
             });
 
-            document.getElementById("receiptFrame").src = url;
+            if (duplicate) {
+                alert("⚠️ This transaction has already been checked!");
+            } else {
+                const listItem = document.createElement("li");
+                const bankName = document.getElementById("bankSelector").options[document.getElementById("bankSelector").selectedIndex].text;
+                listItem.textContent = `Bank: ${bankName}, Transaction: ${txn}, Date: ${currentTime}`;
+                historyList.prepend(listItem);
+
+                // Add to transaction history array
+                transactionHistory.push({ bank: bankName, txn: txn, date: currentTime });
+
+                // Save to localStorage
+                localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
+            }
+
+            if (bank === "cbe") {
+    window.open(url, "_blank");
+} else {
+    document.getElementById("receiptFrame").src = url;
+}
+
         }
 
+        // Trigger on Enter key
+        document.getElementById("txnInput").addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                loadReceipt();
+            }
+        });
+
+        // Download transaction history as CSV
         function downloadHistory() {
             if (transactionHistory.length === 0) {
                 alert("No transactions to download.");
@@ -184,9 +189,12 @@
             document.body.removeChild(link);
         }
 
+        // Clear transaction history
         function clearHistory() {
             if (confirm("Are you sure you want to clear all transaction history?")) {
-                firebase.database().ref('transactions').remove();
+                transactionHistory = [];
+                localStorage.removeItem("transactionHistory");
+                document.getElementById("historyList").innerHTML = "";
                 alert("Transaction history cleared.");
             }
         }
