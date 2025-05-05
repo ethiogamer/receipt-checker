@@ -6,29 +6,27 @@
     <style>
         body {
             font-family: Arial, sans-serif;
+            padding-top: 20px;
             text-align: center;
-            padding-top: 50px;
         }
         h1 {
             color: #0077cc;
         }
         table {
-            margin: 20px auto;
             width: 80%;
+            margin: 20px auto;
             border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
         }
         th, td {
             padding: 10px;
-            text-align: left;
-            border: 1px solid #ccc;
+            text-align: center;
         }
         th {
             background-color: #0077cc;
             color: white;
-        }
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
         }
         button {
             padding: 10px 20px;
@@ -38,97 +36,18 @@
             color: white;
             border: none;
             cursor: pointer;
-            margin-top: 20px;
+        }
+        .tick-btn {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <h1>Admin Panel - Manage Transactions</h1>
+    <h1>Admin Panel - Transaction Verification</h1>
 
     <table id="transactionTable">
         <thead>
             <tr>
                 <th>Bank</th>
-                <th>Transaction Number</th>
-                <th>Date</th>
-                <th>Order Status</th>
-                <th>Verify Receipt</th>
-            </tr>
-        </thead>
-        <tbody id="transactionList">
-            <!-- Data will be loaded here from Firebase -->
-        </tbody>
-    </table>
-
-    <button onclick="updateStatus()">Update Status</button>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-    
-    <script>
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBamCALWsdrWviiEkA26cP6dCJZqZ5NScY",
-            authDomain: "ethio-a1e95.firebaseapp.com",
-            projectId: "ethio-a1e95",
-            storageBucket: "ethio-a1e95.firebasestorage.app",
-            messagingSenderId: "697514706181",
-            appId: "1:697514706181:web:03147af1833cc25719636c",
-            measurementId: "G-FDTWBNFP7F"
-        };
-
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // Load transactions from Firebase
-        window.onload = function() {
-            const transactionList = document.getElementById("transactionList");
-
-            // Fetch transactions from Firebase
-            firebase.database().ref('transactions').on('value', (snapshot) => {
-                transactionList.innerHTML = '';
-                snapshot.forEach((childSnapshot) => {
-                    const item = childSnapshot.val();
-                    const listItem = document.createElement("tr");
-                    
-                    listItem.innerHTML = `
-                        <td>${item.bank}</td>
-                        <td>${item.txn}</td>
-                        <td>${item.date}</td>
-                        <td><input type="checkbox" id="status-${childSnapshot.key}" ${item.status ? 'checked' : ''}></td>
-                        <td><input type="checkbox" id="verify-${childSnapshot.key}" ${item.verified ? 'checked' : ''}></td>
-                    `;
-                    transactionList.appendChild(listItem);
-                });
-            });
-        };
-
-        // Update the status of transactions in Firebase
-        function updateStatus() {
-            const transactionRef = firebase.database().ref('transactions');
-
-            // Loop through all the rows in the table
-            const rows = document.getElementById("transactionList").getElementsByTagName("tr");
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                const key = row.querySelector('input[type="checkbox"]').id.split('-')[1]; // Get the Firebase key
-                
-                const status = document.getElementById(`status-${key}`).checked;
-                const verified = document.getElementById(`verify-${key}`).checked;
-
-                // Update Firebase with the new status and verification
-                transactionRef.child(key).update({
-                    status: status,
-                    verified: verified
-                });
-            }
-
-            alert('Transaction statuses updated successfully!');
-        }
-    </script>
-
-</body>
-</html>
+                <th>Transaction Number</
