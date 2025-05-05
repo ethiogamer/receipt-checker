@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ETHIO GAMER TOP-UP</title>
+    <title>Admin Panel - ETHIO GAMER TOP-UP</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,13 +12,23 @@
         h1 {
             color: #0077cc;
         }
-        select, input {
+        table {
+            margin: 20px auto;
+            width: 80%;
+            border-collapse: collapse;
+        }
+        th, td {
             padding: 10px;
-            font-size: 16px;
-            margin: 10px;
-            width: 300px;
-            border-radius: 5px;
+            text-align: left;
             border: 1px solid #ccc;
+        }
+        th {
+            background-color: #0077cc;
+            color: white;
+        }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
         }
         button {
             padding: 10px 20px;
@@ -28,61 +38,32 @@
             color: white;
             border: none;
             cursor: pointer;
-            margin: 5px;
-        }
-        iframe {
-            margin-top: 30px;
-            width: 80%;
-            height: 600px;
-            border: 1px solid #ccc;
-        }
-        #history {
-            margin-top: 30px;
-            text-align: left;
-            width: 80%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        #history h2 {
-            color: #444;
-        }
-        #history ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        #history li {
-            padding: 5px 0;
-            border-bottom: 1px solid #eee;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Multi-Bank Receipt Checker</h1>
+    <h1>Admin Panel - Manage Transactions</h1>
 
-    <select id="bankSelector">
-        <option value="telebirr">Telebirr</option>
-        <option value="cbe">Commercial Bank of Ethiopia (CBE)</option>
-        <option value="abyssinia">Abyssinia Bank</option>
-        <option value="ebirr-kaffi">E-BIRR KAFFI</option>
-        <option value="ebirr-coopay">E-BIRR COOpay</option>
-    </select>
+    <table id="transactionTable">
+        <thead>
+            <tr>
+                <th>Bank</th>
+                <th>Transaction Number</th>
+                <th>Date</th>
+                <th>Order Status</th>
+                <th>Verify Receipt</th>
+            </tr>
+        </thead>
+        <tbody id="transactionList">
+            <!-- Data will be loaded here from Firebase -->
+        </tbody>
+    </table>
 
-    <br>
-    <input type="text" id="txnInput" placeholder="Enter Transaction Number">
-    <button onclick="loadReceipt()">Check Receipt</button>
+    <button onclick="updateStatus()">Update Status</button>
 
-    <iframe id="receiptFrame"></iframe>
-
-    <div id="history">
-        <h2>Checked Transactions</h2>
-        <ul id="historyList"></ul>
-    </div>
-
-    <button onclick="downloadHistory()">Download Transaction History</button>
-    <button onclick="clearHistory()">Clear Transaction History</button>
-
-    <!-- Add Firebase SDK -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
     
@@ -102,91 +83,50 @@
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Retrieve transaction history from Firebase
+        // Load transactions from Firebase
         window.onload = function() {
-            const historyList = document.getElementById("historyList");
+            const transactionList = document.getElementById("transactionList");
 
-            // Fetch history from Firebase
+            // Fetch transactions from Firebase
             firebase.database().ref('transactions').on('value', (snapshot) => {
-                historyList.innerHTML = '';
+                transactionList.innerHTML = '';
                 snapshot.forEach((childSnapshot) => {
                     const item = childSnapshot.val();
-                    const listItem = document.createElement("li");
-                    listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
-                    historyList.prepend(listItem);
+                    const listItem = document.createElement("tr");
+                    
+                    listItem.innerHTML = `
+                        <td>${item.bank}</td>
+                        <td>${item.txn}</td>
+                        <td>${item.date}</td>
+                        <td><input type="checkbox" id="status-${childSnapshot.key}" ${item.status ? 'checked' : ''}></td>
+                        <td><input type="checkbox" id="verify-${childSnapshot.key}" ${item.verified ? 'checked' : ''}></td>
+                    `;
+                    transactionList.appendChild(listItem);
                 });
             });
         };
 
-        function loadReceipt() {
-            const bank = document.getElementById("bankSelector").value;
-            const txn = document.getElementById("txnInput").value.trim();
-            const currentTime = new Date().toLocaleString();
-
-            if (txn === "") {
-                alert("Please enter a transaction number.");
-                return;
-            }
-
-            let url = "";
-            switch (bank) {
-                case "telebirr":
-                    url = "https://transactioninfo.ethiotelecom.et/receipt/" + txn;
-                    break;
-                case "cbe":
-                    url = "https://apps.cbe.com.et:100/?id=" + txn + "46776488";
-                    break;
-                case "abyssinia":
-                    url = "https://cs.bankofabyssinia.com/slip/?trx=" + txn;
-                    break;
-                case "ebirr-kaffi":
-                    url = "https://transactioninfo.ebirr.com/kaafimf-Ebirr/receipt/" + txn;
-                    break;
-                case "ebirr-coopay":
-                    url = "https://transactioninfo.ebirr.com/coopay-Ebirr/receipt/" + txn;
-                    break;
-                default:
-                    alert("Invalid bank selection.");
-                    return;
-            }
-
-            const historyList = document.getElementById("historyList");
-            const bankName = document.getElementById("bankSelector").options[document.getElementById("bankSelector").selectedIndex].text;
-
-            // Push to Firebase
+        // Update the status of transactions in Firebase
+        function updateStatus() {
             const transactionRef = firebase.database().ref('transactions');
-            transactionRef.push({
-                bank: bankName,
-                txn: txn,
-                date: currentTime
-            });
 
-            document.getElementById("receiptFrame").src = url;
-        }
+            // Loop through all the rows in the table
+            const rows = document.getElementById("transactionList").getElementsByTagName("tr");
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                const key = row.querySelector('input[type="checkbox"]').id.split('-')[1]; // Get the Firebase key
+                
+                const status = document.getElementById(`status-${key}`).checked;
+                const verified = document.getElementById(`verify-${key}`).checked;
 
-        function downloadHistory() {
-            if (transactionHistory.length === 0) {
-                alert("No transactions to download.");
-                return;
+                // Update Firebase with the new status and verification
+                transactionRef.child(key).update({
+                    status: status,
+                    verified: verified
+                });
             }
 
-            const csvContent = "Bank,Transaction Number,Date\n" +
-                transactionHistory.map(item => `${item.bank},${item.txn},${item.date}`).join("\n");
-
-            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "transaction_history.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function clearHistory() {
-            if (confirm("Are you sure you want to clear all transaction history?")) {
-                firebase.database().ref('transactions').remove();
-                alert("Transaction history cleared.");
-            }
+            alert('Transaction statuses updated successfully!');
         }
     </script>
 
