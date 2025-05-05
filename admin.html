@@ -2,31 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel - ETHIO GAMER TOP-UP</title>
+    <title>ETHIO GAMER TOP-UP</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding-top: 20px;
             text-align: center;
+            padding-top: 50px;
         }
         h1 {
             color: #0077cc;
         }
-        table {
-            width: 80%;
-            margin: 20px auto;
-            border-collapse: collapse;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
+        select, input {
             padding: 10px;
-            text-align: center;
-        }
-        th {
-            background-color: #0077cc;
-            color: white;
+            font-size: 16px;
+            margin: 10px;
+            width: 300px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
         }
         button {
             padding: 10px 20px;
@@ -36,79 +28,166 @@
             color: white;
             border: none;
             cursor: pointer;
+            margin: 5px;
         }
-        .tick-btn {
-            cursor: pointer;
+        iframe {
+            margin-top: 30px;
+            width: 80%;
+            height: 600px;
+            border: 1px solid #ccc;
+        }
+        #history {
+            margin-top: 30px;
+            text-align: left;
+            width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #history h2 {
+            color: #444;
+        }
+        #history ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #history li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
         }
     </style>
 </head>
 <body>
 
-    <h1>Admin Panel - Transaction Verification</h1>
+    <h1>Multi-Bank Receipt Checker</h1>
 
-    <table id="transactionTable">
-        <thead>
-            <tr>
-                <th>Bank</th>
-                <th>Transaction Number</th>
-                <th>Date</th>
-                <th>Receipt Verified</th>
-                <th>Order Status</th>
-            </tr>
-        </thead>
-        <tbody id="transactionList">
-            <!-- Dynamic rows will be inserted here -->
-        </tbody>
-    </table>
+    <select id="bankSelector">
+        <option value="telebirr">Telebirr</option>
+        <option value="cbe">Commercial Bank of Ethiopia (CBE)</option>
+        <option value="abyssinia">Abyssinia Bank</option>
+        <option value="ebirr-kaffi">E-BIRR KAFFI</option>
+        <option value="ebirr-coopay">E-BIRR COOpay</option>
+    </select>
 
-    <button onclick="clearAll()">Clear All Transactions</button>
+    <br>
+    <input type="text" id="txnInput" placeholder="Enter Transaction Number">
+    <button onclick="loadReceipt()">Check Receipt</button>
+
+    <iframe id="receiptFrame"></iframe>
+
+    <div id="history">
+        <h2>Checked Transactions</h2>
+        <ul id="historyList"></ul>
+    </div>
+
+    <button onclick="downloadHistory()">Download Transaction History</button>
+    <button onclick="clearHistory()">Clear Transaction History</button>
 
     <script>
-        // Example transaction data
-        let transactions = [
-            { bank: 'Telebirr', txn: '12345', date: '2025-05-05', receiptVerified: false, orderStatus: false },
-            { bank: 'CBE', txn: '67890', date: '2025-05-06', receiptVerified: false, orderStatus: false }
-        ];
+        let transactionHistory = JSON.parse(localStorage.getItem("transactionHistory")) || [];
 
-        // Function to render the transactions table
-        function renderTable() {
-            const tableBody = document.getElementById('transactionList');
-            tableBody.innerHTML = ''; // Clear existing rows
-
-            transactions.forEach((txn, index) => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${txn.bank}</td>
-                    <td>${txn.txn}</td>
-                    <td>${txn.date}</td>
-                    <td><input type="checkbox" class="tick-btn" ${txn.receiptVerified ? 'checked' : ''} onclick="toggleReceiptVerified(${index})"></td>
-                    <td><input type="checkbox" class="tick-btn" ${txn.orderStatus ? 'checked' : ''} onclick="toggleOrderStatus(${index})"></td>
-                `;
-                tableBody.appendChild(row);
+        window.onload = function() {
+            const historyList = document.getElementById("historyList");
+            transactionHistory.forEach(item => {
+                const listItem = document.createElement("li");
+                listItem.textContent = `Bank: ${item.bank}, Transaction: ${item.txn}, Date: ${item.date}`;
+                historyList.prepend(listItem);
             });
-        }
+        };
 
-        // Function to toggle receipt verification status
-        function toggleReceiptVerified(index) {
-            transactions[index].receiptVerified = !transactions[index].receiptVerified;
-        }
+        function loadReceipt() {
+            const bank = document.getElementById("bankSelector").value;
+            const txn = document.getElementById("txnInput").value.trim();
+            const currentTime = new Date().toLocaleString();
 
-        // Function to toggle order status
-        function toggleOrderStatus(index) {
-            transactions[index].orderStatus = !transactions[index].orderStatus;
-        }
+            if (txn === "") {
+                alert("Please enter a transaction number.");
+                return;
+            }
 
-        // Function to clear all transactions (for admin use)
-        function clearAll() {
-            if (confirm("Are you sure you want to clear all transactions?")) {
-                transactions = [];
-                renderTable(); // Re-render table after clearing
-                alert("All transactions cleared.");
+            let url = "";
+            switch (bank) {
+                case "telebirr":
+                    url = "https://transactioninfo.ethiotelecom.et/receipt/" + txn;
+                    break;
+                case "cbe":
+                    url = "https://apps.cbe.com.et:100/?id=" + txn + "46776488";
+                    break;
+                case "abyssinia":
+                    url = "https://cs.bankofabyssinia.com/slip/?trx=" + txn;
+                    break;
+                case "ebirr-kaffi":
+                    url = "https://transactioninfo.ebirr.com/kaafimf-Ebirr/receipt/" + txn;
+                    break;
+                case "ebirr-coopay":
+                    url = "https://transactioninfo.ebirr.com/coopay-Ebirr/receipt/" + txn;
+                    break;
+                default:
+                    alert("Invalid bank selection.");
+                    return;
+            }
+
+            const historyList = document.getElementById("historyList");
+            const existingItems = historyList.querySelectorAll("li");
+            let duplicate = false;
+
+            existingItems.forEach(item => {
+                if (item.textContent.includes(`Transaction: ${txn}`)) {
+                    duplicate = true;
+                }
+            });
+
+            if (duplicate) {
+                alert("⚠️ This transaction has already been checked!");
+            } else {
+                const listItem = document.createElement("li");
+                const bankName = document.getElementById("bankSelector").options[document.getElementById("bankSelector").selectedIndex].text;
+                listItem.textContent = `Bank: ${bankName}, Transaction: ${txn}, Date: ${currentTime}`;
+                historyList.prepend(listItem);
+
+                transactionHistory.push({ bank: bankName, txn: txn, date: currentTime });
+                localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
+            }
+
+            if (bank === "cbe") {
+                window.open(url, "_blank");
+            } else {
+                document.getElementById("receiptFrame").src = url;
             }
         }
 
-        // Initial render
-        renderTable();
+        document.getElementById("txnInput").addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                loadReceipt();
+            }
+        });
+
+        function downloadHistory() {
+            if (transactionHistory.length === 0) {
+                alert("No transactions to download.");
+                return;
+            }
+
+            const csvContent = "Bank,Transaction Number,Date\n" +
+                transactionHistory.map(item => `${item.bank},${item.txn},${item.date}`).join("\n");
+
+            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "transaction_history.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearHistory() {
+            if (confirm("Are you sure you want to clear all transaction history?")) {
+                transactionHistory = [];
+                localStorage.removeItem("transactionHistory");
+                document.getElementById("historyList").innerHTML = "";
+                alert("Transaction history cleared.");
+            }
+        }
     </script>
 
 </body>
