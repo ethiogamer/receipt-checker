@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Panel - ETHIO GAMER TOP-UP</title>
+    <title>Admin Panel - Transaction History</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            padding-top: 20px;
-            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
         }
         h1 {
             color: #0077cc;
         }
         table {
-            width: 80%;
-            margin: 20px auto;
+            width: 100%;
+            margin-top: 20px;
             border-collapse: collapse;
         }
         table, th, td {
@@ -24,27 +24,30 @@
             padding: 10px;
             text-align: center;
         }
-        th {
-            background-color: #0077cc;
-            color: white;
-        }
-        button {
-            padding: 10px 20px;
+        button, input[type="checkbox"] {
+            padding: 5px;
             font-size: 16px;
             border-radius: 5px;
             background-color: #0077cc;
             color: white;
             border: none;
             cursor: pointer;
+            margin: 5px;
         }
-        .tick-btn {
-            cursor: pointer;
+        input[type="checkbox"]:checked {
+            background-color: #28a745;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+        #exportButton {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
 
-    <h1>Admin Panel - Transaction Verification</h1>
+    <h1>Admin Panel - Transaction History</h1>
 
     <table id="transactionTable">
         <thead>
@@ -52,63 +55,87 @@
                 <th>Bank</th>
                 <th>Transaction Number</th>
                 <th>Date</th>
-                <th>Receipt Verified</th>
+                <th>Verified</th>
                 <th>Order Status</th>
+                <th>Actions</th>
             </tr>
         </thead>
-        <tbody id="transactionList">
-            <!-- Dynamic rows will be inserted here -->
-        </tbody>
+        <tbody id="transactionTableBody"></tbody>
     </table>
 
-    <button onclick="clearAll()">Clear All Transactions</button>
+    <button id="clearHistoryButton" onclick="clearTransactionHistory()">Clear All History</button>
+    <button id="exportButton" onclick="exportToCSV()">Export to CSV</button>
 
     <script>
-        // Example transaction data
-        let transactions = [
-            { bank: 'Telebirr', txn: '12345', date: '2025-05-05', receiptVerified: false, orderStatus: false },
-            { bank: 'CBE', txn: '67890', date: '2025-05-06', receiptVerified: false, orderStatus: false }
-        ];
+        let transactionHistory = JSON.parse(localStorage.getItem("transactionHistory")) || [];
 
-        // Function to render the transactions table
-        function renderTable() {
-            const tableBody = document.getElementById('transactionList');
-            tableBody.innerHTML = ''; // Clear existing rows
-
-            transactions.forEach((txn, index) => {
-                const row = document.createElement('tr');
+        // Load transaction data to the table
+        window.onload = function() {
+            const tableBody = document.getElementById("transactionTableBody");
+            transactionHistory.forEach(item => {
+                const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td>${txn.bank}</td>
-                    <td>${txn.txn}</td>
-                    <td>${txn.date}</td>
-                    <td><input type="checkbox" class="tick-btn" ${txn.receiptVerified ? 'checked' : ''} onclick="toggleReceiptVerified(${index})"></td>
-                    <td><input type="checkbox" class="tick-btn" ${txn.orderStatus ? 'checked' : ''} onclick="toggleOrderStatus(${index})"></td>
+                    <td>${item.bank}</td>
+                    <td>${item.txn}</td>
+                    <td>${item.date}</td>
+                    <td><input type="checkbox" ${item.verified ? "checked" : ""} onclick="toggleVerified('${item.txn}')"></td>
+                    <td><input type="checkbox" ${item.orderStatus ? "checked" : ""} onclick="toggleOrderStatus('${item.txn}')"></td>
+                    <td><button onclick="deleteTransaction('${item.txn}')">Delete</button></td>
                 `;
                 tableBody.appendChild(row);
             });
+        };
+
+        // Toggle the verified status
+        function toggleVerified(txn) {
+            const transaction = transactionHistory.find(item => item.txn === txn);
+            transaction.verified = !transaction.verified;
+            localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
         }
 
-        // Function to toggle receipt verification status
-        function toggleReceiptVerified(index) {
-            transactions[index].receiptVerified = !transactions[index].receiptVerified;
+        // Toggle the order status
+        function toggleOrderStatus(txn) {
+            const transaction = transactionHistory.find(item => item.txn === txn);
+            transaction.orderStatus = !transaction.orderStatus;
+            localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
         }
 
-        // Function to toggle order status
-        function toggleOrderStatus(index) {
-            transactions[index].orderStatus = !transactions[index].orderStatus;
-        }
-
-        // Function to clear all transactions (for admin use)
-        function clearAll() {
-            if (confirm("Are you sure you want to clear all transactions?")) {
-                transactions = [];
-                renderTable(); // Re-render table after clearing
-                alert("All transactions cleared.");
+        // Delete a transaction from history
+        function deleteTransaction(txn) {
+            if (confirm("Are you sure you want to delete this transaction?")) {
+                transactionHistory = transactionHistory.filter(item => item.txn !== txn);
+                localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
+                window.location.reload();
             }
         }
 
-        // Initial render
-        renderTable();
+        // Clear all transaction history
+        function clearTransactionHistory() {
+            if (confirm("Are you sure you want to clear all transaction history?")) {
+                transactionHistory = [];
+                localStorage.setItem("transactionHistory", JSON.stringify(transactionHistory));
+                window.location.reload();
+            }
+        }
+
+        // Export transaction history to CSV
+        function exportToCSV() {
+            if (transactionHistory.length === 0) {
+                alert("No transactions to export.");
+                return;
+            }
+
+            const csvContent = "Bank,Transaction Number,Date,Verified,Order Status\n" +
+                transactionHistory.map(item => `${item.bank},${item.txn},${item.date},${item.verified},${item.orderStatus}`).join("\n");
+
+            const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "transaction_history.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 
 </body>
