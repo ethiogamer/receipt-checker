@@ -50,4 +50,66 @@
         <thead>
             <tr>
                 <th>Bank</th>
-                <th>Transaction Number</
+                <th>Transaction Number</th>
+                <th>Date</th>
+                <th>Receipt Verified</th>
+                <th>Order Status</th>
+            </tr>
+        </thead>
+        <tbody id="transactionList">
+            <!-- Dynamic rows will be inserted here -->
+        </tbody>
+    </table>
+
+    <button onclick="clearAll()">Clear All Transactions</button>
+
+    <script>
+        // Example transaction data
+        let transactions = [
+            { bank: 'Telebirr', txn: '12345', date: '2025-05-05', receiptVerified: false, orderStatus: false },
+            { bank: 'CBE', txn: '67890', date: '2025-05-06', receiptVerified: false, orderStatus: false }
+        ];
+
+        // Function to render the transactions table
+        function renderTable() {
+            const tableBody = document.getElementById('transactionList');
+            tableBody.innerHTML = ''; // Clear existing rows
+
+            transactions.forEach((txn, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${txn.bank}</td>
+                    <td>${txn.txn}</td>
+                    <td>${txn.date}</td>
+                    <td><input type="checkbox" class="tick-btn" ${txn.receiptVerified ? 'checked' : ''} onclick="toggleReceiptVerified(${index})"></td>
+                    <td><input type="checkbox" class="tick-btn" ${txn.orderStatus ? 'checked' : ''} onclick="toggleOrderStatus(${index})"></td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Function to toggle receipt verification status
+        function toggleReceiptVerified(index) {
+            transactions[index].receiptVerified = !transactions[index].receiptVerified;
+        }
+
+        // Function to toggle order status
+        function toggleOrderStatus(index) {
+            transactions[index].orderStatus = !transactions[index].orderStatus;
+        }
+
+        // Function to clear all transactions (for admin use)
+        function clearAll() {
+            if (confirm("Are you sure you want to clear all transactions?")) {
+                transactions = [];
+                renderTable(); // Re-render table after clearing
+                alert("All transactions cleared.");
+            }
+        }
+
+        // Initial render
+        renderTable();
+    </script>
+
+</body>
+</html>
